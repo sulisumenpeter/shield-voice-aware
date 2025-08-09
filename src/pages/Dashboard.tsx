@@ -4,6 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 const Gauge = ({ value }: { value: number }) => {
   const hue = value < 35 ? 160 : value < 70 ? 40 : 0; // green -> amber -> red
@@ -40,6 +42,16 @@ const Dashboard = () => {
           ) : (
             <Button onClick={start}>Start</Button>
           )}
+          <Button
+            variant="ghost"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              toast({ title: "Signed out" });
+              window.location.href = "/login";
+            }}
+          >
+            Sign out
+          </Button>
         </div>
       </header>
 
