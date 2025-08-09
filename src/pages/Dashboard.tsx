@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useMockSession } from "@/hooks/useMockSession";
+import { useRealtimeSession } from "@/hooks/useRealtimeSession";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,7 @@ const Gauge = ({ value }: { value: number }) => {
 };
 
 const Dashboard = () => {
-  const { connected, isSpeaking, risk, language, items, start, stop } = useMockSession("en");
+  const { connected, isSpeaking, risk, language, items, start, stop } = useRealtimeSession("en");
 
   useEffect(() => {
     start();
@@ -58,7 +58,7 @@ const Dashboard = () => {
       <section className="container grid md:grid-cols-[360px_1fr] gap-6 pb-16">
         <Card className="p-6 sticky top-6 h-fit">
           <h1 className="text-2xl font-bold">Live Risk</h1>
-          <p className="text-sm text-muted-foreground mt-1">Realtime scoring from transcript + anti-spoof checks.</p>
+          <p className="text-sm text-muted-foreground mt-1">Realtime scoring from transcript.</p>
           <div className="mt-6 flex items-center justify-center">
             <Gauge value={risk} />
           </div>
@@ -66,7 +66,7 @@ const Dashboard = () => {
           <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between"><span>Scam cues</span><span className="text-muted-foreground">2FA, urgency</span></div>
             <div className="flex items-center justify-between"><span>Speaker diarization</span><span className="text-muted-foreground">You / Caller</span></div>
-            <div className="flex items-center justify-between"><span>Anti-spoof</span><Badge variant="outline">Mock</Badge></div>
+            <div className="flex items-center justify-between"><span>Anti-spoof</span><Badge variant="outline">Disabled</Badge></div>
           </div>
         </Card>
 
