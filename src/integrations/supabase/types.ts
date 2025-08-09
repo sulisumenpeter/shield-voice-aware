@@ -14,7 +14,130 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      alerts: {
+        Row: {
+          call_id: string
+          created_at: string
+          id: string
+          level: string
+          message: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          call_id: string
+          created_at?: string
+          id?: string
+          level: string
+          message: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          call_id?: string
+          created_at?: string
+          id?: string
+          level?: string
+          message?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calls: {
+        Row: {
+          channel: string
+          created_at: string
+          direction: string
+          ended_at: string | null
+          id: string
+          risk_score: number
+          started_at: string
+          title: string | null
+          transcript_summary: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          direction: string
+          ended_at?: string | null
+          id?: string
+          risk_score?: number
+          started_at?: string
+          title?: string | null
+          transcript_summary?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          direction?: string
+          ended_at?: string | null
+          id?: string
+          risk_score?: number
+          started_at?: string
+          title?: string | null
+          transcript_summary?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transcripts: {
+        Row: {
+          call_id: string
+          content: string
+          created_at: string
+          id: string
+          label: string | null
+          rationale: string | null
+          speaker: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          call_id: string
+          content: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          rationale?: string | null
+          speaker: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          call_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          rationale?: string | null
+          speaker?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcripts_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
