@@ -22,19 +22,19 @@ export const RiskWidget = ({ autoplay = false }: RiskWidgetProps) => {
 
   return (
     <div className="z-50 md:fixed md:bottom-4 md:left-4 md:right-4 sticky bottom-2 w-full px-4">
-      <Card className={cn("shadow-lg border p-4 w-full max-w-md md:ml-auto bg-card/90 backdrop-blur", "surface-glow")}> 
+      <Card className={cn("shadow-lg border p-3 w-full max-w-sm md:ml-auto bg-card/90 backdrop-blur", "surface-glow")}> 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className={cn(
-              "h-3 w-3 rounded-full",
+              "h-2.5 w-2.5 rounded-full",
               isSpeaking ? "bg-primary animate-pulse" : "bg-muted"
             )} />
-            <span className="text-sm text-muted-foreground">{connected ? "Monitoring" : "Idle"} • {language.toUpperCase()}</span>
+            <span className="text-xs text-muted-foreground">{connected ? "Monitoring" : "Idle"} • {language.toUpperCase()}</span>
           </div>
           <Badge variant={color as any}>{Math.round(risk)}%</Badge>
         </div>
 
-        <div className="mt-3">
+        <div className="mt-2">
           {latest ? (
             <div>
               <div className="flex items-center justify-between">
@@ -45,15 +45,15 @@ export const RiskWidget = ({ autoplay = false }: RiskWidgetProps) => {
                   {latest.label}
                 </Badge>
               </div>
-              <p className="text-sm mt-1 leading-snug">{latest.text}</p>
+              <p className="text-xs mt-1 leading-snug">{latest.text}</p>
               <p className="text-[11px] mt-1 text-muted-foreground">{latest.rationale}</p>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No transcript yet.</p>
+            <p className="text-xs text-muted-foreground">No transcript yet.</p>
           )}
         </div>
 
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-2 flex items-center gap-2">
           {!connected ? (
             <Button size="sm" onClick={start}>Start Mock</Button>
           ) : (
