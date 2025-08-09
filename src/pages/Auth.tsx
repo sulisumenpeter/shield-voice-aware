@@ -60,6 +60,23 @@ const Auth = () => {
     }
   };
 
+  const handleGoogle = async () => {
+    setLoading(true);
+    try {
+      const redirectTo = `${window.location.origin}/dashboard`;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo },
+      });
+      if (error) throw error;
+      toast({ title: "Redirecting to Google..." });
+    } catch (e: any) {
+      toast({ title: "Google sign-in failed", description: e.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen flex items-center justify-center surface-glow">
       <Card className="p-6 w-full max-w-sm">
@@ -71,6 +88,14 @@ const Auth = () => {
           <div className="flex gap-2">
             <Button className="flex-1" onClick={handleAuth} disabled={loading}>{isSignUp ? "Sign up" : "Sign in"}</Button>
           </div>
+          <div className="flex items-center gap-3 py-2">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">Or</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+          <Button variant="outline" className="w-full" onClick={handleGoogle} disabled={loading}>
+            Continue with Google
+          </Button>
         </div>
         <button
           onClick={() => setIsSignUp(!isSignUp)}
