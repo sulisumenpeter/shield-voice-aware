@@ -21,6 +21,9 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
   const userIdRef = useRef<string | null>(null);
   const lastItemAtRef = useRef<number>(0);
   const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([]);
+  const audioQueueRef = useRef<string[]>([]);
+  const isPlayingRef = useRef(false);
+  const audioElRef = useRef<HTMLAudioElement | null>(null);
 
   // Simple VAD-ish indicator: speaking if last item within 3s
   useEffect(() => {
@@ -30,6 +33,48 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
     }, 1000);
     return () => clearInterval(i);
   }, []);
+
+  function playNext() {
+    if (isPlayingRef.current) return;
+    const next = audioQueueRef.current.shift();
+    if (!next) return;
+    if (!audioElRef.current) audioElRef.current = new Audio();
+    const el = audioElRef.current;
+    el.src = `data:audio/mpeg;base64,${next}`;
+    isPlayingRef.current = true;
+    el.onended = () => {
+      isPlayingRef.current = false;
+      playNext();
+    };
+    el.onerror = () => {
+      isPlayingRef.current = false;
+      playNext();
+    };
+    void el.play().catch(() => {
+      isPlayingRef.current = false;
+      playNext();
+    });
+  }
+
+  function enqueueAudio(b64: string) {
+    audioQueueRef.current.push(b64);
+    if (!isPlayingRef.current) playNext();
+  }
+
+  async function speak(text: string, voiceId = "9BWtsMINqrJLrRacOk9x") {
+    try {
+      const { data, error } = await supabase.functions.invoke("voice-alert", {
+        body: { text, voiceId },
+      });
+      if (error) {
+        console.error("voice-alert invoke error:", error);
+        return;
+      }
+      if (data?.audio) enqueueAudio(data.audio as string);
+    } catch (e) {
+      console.error("speak error", e);
+    }
+  }
 
   const start = async () => {
     // Resolve user
@@ -121,7 +166,23 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
       )
       .subscribe();
 
-    channelsRef.current = [chTranscripts, chCalls];
+    const chAlerts = supabase
+      .channel("realtime-alerts")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "alerts" },
+        async (payload: any) => {
+          const row = payload.new;
+          const uid = userIdRef.current;
+          if (!uid || row.user_id !== uid) return;
+          const level = (row.level || "info").toString();
+          const message = (row.message || "New alert").toString();
+          await speak(`Alert ${level}. ${message}`);
+        }
+      )
+      .subscribe();
+
+    channelsRef.current = [chTranscripts, chCalls, chAlerts];
   };
 
   const stop = async () => {
