@@ -158,9 +158,38 @@ async function transcribeChunkWav(wavBytes: Uint8Array, openAIKey: string): Prom
   }
 }
 
-// Anti-spoofing placeholder (returns unknown). Integrate AASIST/RawNet2 via external API when available.
+// Anti-spoofing placeholder (skipped for MVP)
 async function detectSpoof(_wavBytes: Uint8Array): Promise<{ result: string; score?: number }> {
-  return { result: "unknown" };
+  return { result: "skipped" };
+}
+
+// HMAC token verification (hex digest)
+async function hmacSha256Hex(key: string, message: string): Promise<string> {
+  const enc = new TextEncoder();
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(key),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", cryptoKey, enc.encode(message));
+  const bytes = new Uint8Array(sig);
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let res = 0;
+  for (let i = 0; i < a.length; i++) {
+    res |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return res === 0;
+}
+
+async function verifySignedToken(secret: string, payload: string, token: string): Promise<boolean> {
+  const expected = await hmacSha256Hex(secret, payload);
+  return timingSafeEqual(expected, token);
 }
 
 serve(async (req) => {
@@ -175,6 +204,27 @@ serve(async (req) => {
     return new Response("Expected WebSocket connection", { status: 400 });
   }
 
+  // Parse and verify signed token BEFORE upgrading
+  const url = new URL(req.url);
+  const userId = url.searchParams.get("user_id");
+  const callId = url.searchParams.get("call_id");
+  const language = url.searchParams.get("lang") || "en";
+  const tsParam = url.searchParams.get("ts");
+  const tokenParam = url.searchParams.get("token");
+  const tokenSecret = Deno.env.get("TWILIO_MEDIA_TOKEN_SECRET") || "";
+
+  if (!userId || !callId || !tsParam || !tokenParam || !tokenSecret) {
+    return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+  }
+  const ts = parseInt(tsParam, 10);
+  if (!Number.isFinite(ts) || Math.abs(Date.now() - ts) > 60_000) {
+    return new Response("Token expired", { status: 401, headers: corsHeaders });
+  }
+  const isValid = await verifySignedToken(tokenSecret, `${userId}:${callId}:${ts}`, tokenParam);
+  if (!isValid) {
+    return new Response("Invalid token", { status: 401, headers: corsHeaders });
+  }
+
   const { socket, response } = Deno.upgradeWebSocket(req, { protocol: req.headers.get("Sec-WebSocket-Protocol") ?? undefined });
 
   // Env & clients
@@ -182,12 +232,6 @@ serve(async (req) => {
   const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const OPENAI = Deno.env.get("OPENAI_API_KEY")!;
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
-
-  // Params from URL (configure Twilio stream URL with these)
-  const url = new URL(req.url);
-  const userId = url.searchParams.get("user_id");
-  const callId = url.searchParams.get("call_id") || crypto.randomUUID();
-  const language = url.searchParams.get("lang") || "en";
 
   let pcmBuffer8k: Int16Array[] = [];
   const CHUNK_TARGET_MS = 1500; // ~1.5s latency target
@@ -219,9 +263,6 @@ serve(async (req) => {
       // Classify
       const { label, rationale, risk } = await classifyText(text, OPENAI);
 
-      // Anti-spoofing (placeholder)
-      const spoof = await detectSpoof(wav);
-
       // Accumulate risk (simple moving average)
       segments += 1;
       cumulativeRisk = Math.round(((cumulativeRisk * (segments - 1)) + risk) / segments);
@@ -248,7 +289,7 @@ serve(async (req) => {
             user_id: userId,
             call_id: callId,
             level: label.toLowerCase(),
-            message: `Detected ${label}${spoof.result !== "unknown" ? ` (spoof:${spoof.result})` : ""}: ${rationale}`,
+            message: `Detected ${label}: ${rationale}`,
           });
         }
       }
@@ -264,7 +305,6 @@ serve(async (req) => {
         rationale,
         risk,
         cumulative_risk: cumulativeRisk,
-        anti_spoofing: spoof,
         ts: Date.now(),
       }));
     } catch (err) {
