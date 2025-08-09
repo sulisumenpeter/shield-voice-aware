@@ -22,7 +22,7 @@ const Gauge = ({ value }: { value: number }) => {
 };
 
 const Dashboard = () => {
-  const { connected, isSpeaking, risk, language, items, start, stop } = useRealtimeSession("en");
+  const { connected, isSpeaking, risk, language, items, start, stop, speak } = useRealtimeSession("en");
 
   useEffect(() => {
     start();
@@ -42,6 +42,15 @@ const Dashboard = () => {
           ) : (
             <Button onClick={start}>Start</Button>
           )}
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              await speak("Test alert: This is a voice alert test.");
+              toast({ title: "Playing test voice alert" });
+            }}
+          >
+            Test Voice Alert
+          </Button>
           <Button
             variant="ghost"
             onClick={async () => {

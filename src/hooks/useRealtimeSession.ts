@@ -192,7 +192,7 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
   };
 
   return useMemo(
-    () => ({ connected, isSpeaking, risk, language, items, start, stop }),
+    () => ({ connected, isSpeaking, risk, language, items, start, stop, speak }),
     [connected, isSpeaking, risk, language, items]
   );
 };
