@@ -1,1 +1,4 @@
 project_id = "xxbxddznwmfvbmcaciuq"
+
+[functions.twilio-media]
+verify_jwt = false
