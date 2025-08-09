@@ -10,7 +10,8 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-
+  const [isRecovery, setIsRecovery] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
@@ -21,6 +22,15 @@ const Auth = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) window.location.href = "/dashboard";
     });
+
+    // Detect password recovery redirect
+    try {
+      const hash = window.location.hash || "";
+      if (hash.includes("type=recovery")) {
+        setIsRecovery(true);
+        toast({ title: "Reset password", description: "Enter a new password below." });
+      }
+    } catch {}
 
     return () => subscription.unsubscribe();
   }, []);
@@ -60,6 +70,40 @@ const Auth = () => {
     }
   };
 
+  const handleResetPassword = async () => {
+    try {
+      if (!email) {
+        toast({ title: "Enter your email", description: "Type your email, then click Forgot password." });
+        return;
+      }
+      const redirectUrl = `${window.location.origin}/login`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
+      if (error) throw error;
+      toast({ title: "Check your email", description: "Password reset link sent." });
+    } catch (e: any) {
+      toast({ title: "Reset failed", description: e.message || "Please try again." });
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!newPassword) {
+      toast({ title: "Missing password", description: "Enter a new password." });
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast({ title: "Password updated", description: "You can now continue." });
+      setIsRecovery(false);
+      window.location.href = "/dashboard";
+    } catch (e: any) {
+      toast({ title: "Update failed", description: e.message || "Try again." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen flex items-center justify-center surface-glow">
       <Card className="p-6 w-full max-w-sm">
@@ -67,10 +111,31 @@ const Auth = () => {
         <p className="text-sm text-muted-foreground">{isSignUp ? "Register with email and password" : "Use your email and password"}</p>
         <div className="mt-4 space-y-3">
           <Input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <div className="flex gap-2">
-            <Button className="flex-1" onClick={handleAuth} disabled={loading}>{isSignUp ? "Sign up" : "Sign in"}</Button>
-          </div>
+          {!isRecovery && (
+            <>
+              <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+              {!isSignUp && (
+                <button
+                  type="button"
+                  onClick={handleResetPassword}
+                  className="text-sm underline text-muted-foreground text-left"
+                >
+                  Forgot password?
+                </button>
+              )}
+            </>
+          )}
+          {isRecovery && (
+            <>
+              <Input type="password" placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+              <Button onClick={handleUpdatePassword} disabled={loading} className="w-full">Update password</Button>
+            </>
+          )}
+          {!isRecovery && (
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={handleAuth} disabled={loading}>{isSignUp ? "Sign up" : "Sign in"}</Button>
+            </div>
+          )}
         </div>
         <button
           onClick={() => setIsSignUp(!isSignUp)}
