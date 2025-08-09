@@ -94,6 +94,32 @@ All colors MUST be HSL.
   }
 }
 
+/* Enhanced design tokens and utilities */
+@layer base {
+  :root {
+    --brand: 258 85% 60%;
+    --brand-2: 200 90% 50%;
+    --brand-3: 340 82% 60%;
+    --gradient-brand: linear-gradient(135deg, hsl(var(--brand)), hsl(var(--brand-2)));
+    --gradient-surface: radial-gradient(1200px 600px at 10% -10%, hsl(var(--brand) / 0.12), transparent),
+      radial-gradient(1200px 600px at 100% 10%, hsl(var(--brand-2) / 0.12), transparent);
+    --shadow-elegant: 0 10px 30px -10px hsl(var(--brand) / 0.3);
+    --shadow-glow: 0 0 40px hsl(var(--brand-2) / 0.35);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .gradient-text {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .surface-glow {
+    background-image: var(--gradient-surface);
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
