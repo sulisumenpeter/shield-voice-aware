@@ -21,8 +21,8 @@ export const RiskWidget = ({ autoplay = false }: RiskWidgetProps) => {
   const color = risk >= 70 ? "destructive" : risk >= 35 ? "secondary" : "primary";
 
   return (
-    <div className="fixed right-4 bottom-4 z-50">
-      <Card className={cn("shadow-lg border p-4 w-[320px] bg-card/90 backdrop-blur", "surface-glow")}> 
+    <div className="z-50 md:fixed md:bottom-4 md:left-4 md:right-4 sticky bottom-2 w-full px-4">
+      <Card className={cn("shadow-lg border p-4 w-full max-w-md md:ml-auto bg-card/90 backdrop-blur", "surface-glow")}> 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className={cn(
