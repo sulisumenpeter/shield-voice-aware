@@ -22,7 +22,7 @@ export const RiskWidget = ({ autoplay = false }: RiskWidgetProps) => {
 
   return (
     <div className="z-50 md:fixed md:bottom-4 md:left-4 md:right-4 sticky bottom-2 w-full px-4">
-      <Card className={cn("shadow-lg border p-3 w-full max-w-sm md:ml-auto bg-card/90 backdrop-blur", "surface-glow")}> 
+      <Card className={cn("shadow-lg border p-3 w-full max-w-xs md:ml-auto bg-card/90 backdrop-blur", "surface-glow")}> 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className={cn(
