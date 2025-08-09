@@ -45,7 +45,7 @@ const Index = () => {
         </div>
       </section>
 
-      <section id="how-it-works" className="container py-16">
+      <section id="how-it-works" className="container py-16 pb-28 md:pb-16">
         <h2 className="text-2xl font-semibold">How it works</h2>
         <p className="mt-4 text-muted-foreground max-w-prose">
           We securely capture audio from your call, analyze speech to understand intent and authenticity, and provide discreet guidance in real time. No complex setup—just clear protection as you talk.
