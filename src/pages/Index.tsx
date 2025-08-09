@@ -20,7 +20,7 @@ const Index = () => {
         <div className="container py-16 md:py-24 grid md:grid-cols-2 gap-10 items-center">
           <div>
             <h1 className="text-4xl md:text-5xl font-bold leading-tight">Real‑Time Protection from Scam Calls and Deepfakes</h1>
-            <p className="mt-4 text-lg text-muted-foreground max-w-prose">Voice Scam Shield quietly monitors calls, spots risky requests and AI‑generated voices, and guides you in the moment—so you stay focused and safe.</p>
+            <p className="mt-4 text-lg text-muted-foreground max-w-prose">Voice Scam Shield quietly monitors voice and video calls, spots risky requests and AI‑generated voices, and guides you in the moment—so you stay focused and safe.</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a href="/dashboard"><Button>Try Mock Demo</Button></a>
               <Button variant="outline" asChild>
@@ -48,7 +48,7 @@ const Index = () => {
       <section id="how-it-works" className="container py-16 pb-28 md:pb-16">
         <h2 className="text-2xl font-semibold">How it works</h2>
         <p className="mt-4 text-muted-foreground max-w-prose">
-          We securely capture audio from your call, analyze speech to understand intent and authenticity, and provide discreet guidance in real time. No complex setup—just clear protection as you talk.
+          We securely capture audio from your voice and video calls, analyze speech to understand intent and authenticity, and provide discreet guidance in real time. No complex setup—just clear protection as you talk.
         </p>
       </section>
 
