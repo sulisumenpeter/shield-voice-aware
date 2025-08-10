@@ -1,73 +1,117 @@
-# Welcome to your Lovable project
+Voice Scam Shield – Real-Time Multilingual Call Scam Detection
 
-## Project info
+Overview
+This project implements a secure, real-time multilingual voice scam detection system. It monitors live phone calls, transcribes conversations, detects scam intent, and identifies synthetic voices to protect users during calls. Alerts are discreetly delivered via text and speech, supporting English, Spanish, and French.
 
-**URL**: https://lovable.dev/projects/6e58f5c9-57dc-4183-a871-c882c87a0057
 
-## How can I edit this code?
+Features
+Real-time call audio streaming via Twilio Media Streams
 
-There are several ways of editing your application.
+Voice activity detection and speaker diarization
 
-**Use Lovable**
+Multilingual transcription with Whisper API
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/6e58f5c9-57dc-4183-a871-c882c87a0057) and start prompting.
+Scam intent classification using GPT-4o-mini
 
-Changes made via Lovable will be committed automatically to this repo.
+Anti-spoofing detection via Hugging Face AASIST model
 
-**Use your preferred IDE**
+Discreet user alerts using ElevenLabs TTS
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Secure communication (HTTPS/WSS) and environment-based secret management
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Modular architecture for easy updates and testing
 
-Follow these steps:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Tech Stack
+Frontend: React / Next.js
 
-# Step 3: Install the necessary dependencies.
-npm i
+Backend: Supabase Edge Functions (WebSockets)
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+ASR: Whisper API
 
-**Edit a file directly in GitHub**
+Scam Detection: GPT-4o-mini
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Anti-Spoofing: Hugging Face AASIST model
 
-**Use GitHub Codespaces**
+Telephony: Twilio Programmable Voice + Media Streams
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+TTS: ElevenLabs API
 
-## What technologies are used for this project?
+Setup Instructions
 
-This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Prerequisites
 
-## How can I deploy this project?
+Node.js v16+
 
-Simply open [Lovable](https://lovable.dev/projects/6e58f5c9-57dc-4183-a871-c882c87a0057) and click on Share -> Publish.
+Twilio Account with Media Streams enabled
 
-## Can I connect a custom domain to my Lovable project?
+OpenAI API Key
 
-Yes, you can!
+Hugging Face API Key (for AASIST model)
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+ElevenLabs API Key
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+
+Environment Variables
+Create a .env file and add:
+
+ini
+Copy
+Edit
+TWILIO_ACCOUNT_SID=your_twilio_sid  
+TWILIO_AUTH_TOKEN=your_twilio_auth_token  
+OPENAI_API_KEY=your_openai_key  
+HUGGINGFACE_API_KEY=your_huggingface_key  
+ELEVENLABS_API_KEY=your_elevenlabs_key  
+
+
+1. Running Locally
+Install dependencies:
+
+bash
+Copy
+Edit
+npm install  
+
+
+2. Start frontend:
+
+bash
+Copy
+Edit
+npm run dev  
+
+
+3. Deploy or emulate backend Supabase Edge Functions locally per Supabase docs.
+
+
+Testing without Live Calls
+Use mock audio streams in /mock folder.
+Set backend to mock mode by enabling MOCK_TWILIO=true in .env.
+
+
+Security Considerations
+All API keys are stored in environment variables, never committed.
+Communication uses HTTPS and WSS protocols.
+Role-based access controls protect dashboard and reports.
+
+Contribution
+This project was built for the Hack-Nation Global AI Hackathon. Feel free to fork, improve, and experiment!
+
+GitHub Setup Notes
+Use .gitignore to exclude .env, node_modules/, and any sensitive data.
+
+Create branches for features: feature/streaming, feature/scam-detection, etc.
+
+Write clear commit messages, e.g., “Add Whisper transcription integration.”
+
+Include unit and integration tests for core components (mock streaming, classification).
+
+Setup GitHub Actions for linting and tests on PRs.
+
+Tag releases as v1.0-hackathon for submission snapshot.
+
+Link GitHub repo to your demo deployment (Netlify/Vercel/Supabase).
