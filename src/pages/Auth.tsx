@@ -13,27 +13,40 @@ const Auth = () => {
   const [isRecovery, setIsRecovery] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
+    // Detect password recovery redirect from hash
+    let recoveryFromHash = false;
+    try {
+      const hash = window.location.hash || "";
+      recoveryFromHash = hash.includes("type=recovery");
+      if (recoveryFromHash) {
+        setIsRecovery(true);
+        localStorage.setItem("recovery_in_progress", "1");
+        toast({ title: "Reset password", description: "Enter a new password below." });
+      }
+    } catch {}
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setIsRecovery(true);
+        localStorage.setItem("recovery_in_progress", "1");
+        toast({ title: "Reset password", description: "Enter a new password below." });
+        return; // Do NOT redirect during recovery
+      }
+      const recovering = localStorage.getItem("recovery_in_progress") === "1" || isRecovery;
+      if (session && !recovering) {
         window.location.href = "/dashboard";
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) window.location.href = "/dashboard";
+      const recovering = localStorage.getItem("recovery_in_progress") === "1" || recoveryFromHash || isRecovery;
+      if (session && !recovering) {
+        window.location.href = "/dashboard";
+      }
     });
 
-    // Detect password recovery redirect
-    try {
-      const hash = window.location.hash || "";
-      if (hash.includes("type=recovery")) {
-        setIsRecovery(true);
-        toast({ title: "Reset password", description: "Enter a new password below." });
-      }
-    } catch {}
-
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isRecovery]);
 
   const handleAuth = async () => {
     setLoading(true);
@@ -95,6 +108,7 @@ const Auth = () => {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
       toast({ title: "Password updated", description: "You can now continue." });
+      localStorage.removeItem("recovery_in_progress");
       setIsRecovery(false);
       window.location.href = "/dashboard";
     } catch (e: any) {
