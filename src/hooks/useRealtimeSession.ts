@@ -15,7 +15,7 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
   const [connected, setConnected] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [risk, setRisk] = useState(0);
-  const [language] = useState(defaultLanguage);
+  const [language, setLanguage] = useState(defaultLanguage);
   const [items, setItems] = useState<LiveItem[]>([]);
 
   const userIdRef = useRef<string | null>(null);
@@ -94,6 +94,7 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
     };
     lastItemAtRef.current = item.t;
     setItems((prev) => [...prev, item]);
+    setLanguage(item.language);
   }
 
   async function testAudioSnippet(lang: "en" | "es" | "fr") {
@@ -166,7 +167,7 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
           text: r.content as string,
           label: (r.label as any) || "Suspicious",
           rationale: (r.rationale as string) || undefined,
-          language: defaultLanguage,
+          language: (r as any).language || defaultLanguage,
         }));
         lastItemAtRef.current = mapped[mapped.length - 1]?.t ?? 0;
         setItems(mapped);
@@ -191,10 +192,11 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
             text: row.content,
             label: row.label || "Suspicious",
             rationale: row.rationale || undefined,
-            language: defaultLanguage,
+            language: row.language || defaultLanguage,
           };
           lastItemAtRef.current = item.t;
           setItems((prev) => [...prev, item]);
+          setLanguage(item.language);
         }
       )
       .subscribe((status) => {
@@ -261,6 +263,19 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
   const stop = async () => {
     channelsRef.current.forEach((ch) => supabase.removeChannel(ch));
     channelsRef.current = [];
+    // Stop and clear any ongoing voice notifications
+    try {
+      if (audioElRef.current) {
+        audioElRef.current.pause();
+        audioElRef.current.src = "";
+        audioElRef.current.onended = null;
+        audioElRef.current.onerror = null;
+      }
+    } catch (e) {
+      // noop
+    }
+    audioQueueRef.current = [];
+    isPlayingRef.current = false;
     setConnected(false);
   };
 
