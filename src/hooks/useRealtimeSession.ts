@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-
+import { ensureNotificationPermission, sendLocalNotification } from "@/mobile/notifications";
 export type LiveItem = {
   id: string;
   t: number; // timestamp ms
@@ -151,7 +151,12 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
           const row = payload.new;
           const uid = userIdRef.current;
           if (!uid || row.user_id !== uid) return;
-          if (typeof row.risk_score === "number") setRisk(row.risk_score);
+          if (typeof row.risk_score === "number") {
+            setRisk(row.risk_score);
+            if (row.risk_score >= 70) {
+              sendLocalNotification("High Call Risk Detected", `Risk score ${row.risk_score}%`);
+            }
+          }
         }
       )
       .on(
@@ -161,7 +166,12 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
           const row = payload.new;
           const uid = userIdRef.current;
           if (!uid || row.user_id !== uid) return;
-          if (typeof row.risk_score === "number") setRisk(row.risk_score);
+          if (typeof row.risk_score === "number") {
+            setRisk(row.risk_score);
+            if (row.risk_score >= 70) {
+              sendLocalNotification("High Call Risk Detected", `Risk score ${row.risk_score}%`);
+            }
+          }
         }
       )
       .subscribe();
@@ -178,11 +188,15 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
           const level = (row.level || "info").toString();
           const message = (row.message || "New alert").toString();
           await speak(`Alert ${level}. ${message}`);
+          sendLocalNotification(`Call Alert: ${level}`, message);
         }
       )
       .subscribe();
 
     channelsRef.current = [chTranscripts, chCalls, chAlerts];
+
+    // Ensure notification permissions on mobile
+    ensureNotificationPermission();
   };
 
   const stop = async () => {
