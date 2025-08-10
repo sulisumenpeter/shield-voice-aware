@@ -78,7 +78,7 @@ const Dashboard = () => {
           <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between"><span>Scam cues</span><span className="text-muted-foreground">2FA, urgency</span></div>
             <div className="flex items-center justify-between"><span>Speaker diarization</span><span className="text-muted-foreground">You / Caller</span></div>
-            <div className="flex items-center justify-between"><span>Anti-spoof</span><Badge variant="outline">Disabled</Badge></div>
+            <div className="flex items-center justify-between"><span>Anti-spoof</span><Badge variant="secondary">Enabled</Badge></div>
           </div>
         </Card>
 
