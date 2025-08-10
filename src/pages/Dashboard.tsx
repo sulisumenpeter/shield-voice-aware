@@ -22,7 +22,7 @@ const Gauge = ({ value }: { value: number }) => {
 };
 
 const Dashboard = () => {
-  const { connected, isSpeaking, risk, language, items, start, stop, speak } = useRealtimeSession("en");
+  const { connected, isSpeaking, risk, language, items, start, stop, speak, addLocalTranscript } = useRealtimeSession("en");
 
   useEffect(() => {
     start();
@@ -82,6 +82,22 @@ const Dashboard = () => {
         <Card className="p-6">
           <h2 className="text-xl font-semibold">Transcript</h2>
           <p className="text-sm text-muted-foreground">Multilingual (EN/ES/FR) — new chunks every ~1.3s</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span>How to test:</span>
+            <span>1) Click Start</span>
+            <span>2) Speak on a call</span>
+            <span>3) Or simulate a line locally:</span>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                addLocalTranscript("Caller", "This is a local sample transcript line.", "Safe", "Demo preview");
+                toast({ title: "Local sample added" });
+              }}
+            >
+              Simulate Locally
+            </Button>
+          </div>
           <div className="mt-4 space-y-3 max-h-[70vh] overflow-auto pr-2">
             {items.length === 0 && (
               <p className="text-sm text-muted-foreground">Waiting for audio…</p>

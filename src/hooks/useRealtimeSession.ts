@@ -76,6 +76,25 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
     }
   }
 
+  function addLocalTranscript(
+    speaker: string,
+    text: string,
+    label: LiveItem["label"] = "Safe",
+    rationale?: string
+  ) {
+    const item: LiveItem = {
+      id: `local-${Date.now()}`,
+      t: Date.now(),
+      speaker,
+      text,
+      label,
+      rationale,
+      language: defaultLanguage,
+    };
+    lastItemAtRef.current = item.t;
+    setItems((prev) => [...prev, item]);
+  }
+
   const start = async () => {
     // Resolve user
     const { data: u } = await supabase.auth.getUser();
@@ -206,7 +225,7 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
   };
 
   return useMemo(
-    () => ({ connected, isSpeaking, risk, language, items, start, stop, speak }),
+    () => ({ connected, isSpeaking, risk, language, items, start, stop, speak, addLocalTranscript }),
     [connected, isSpeaking, risk, language, items]
   );
 };
