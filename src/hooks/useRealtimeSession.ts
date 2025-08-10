@@ -95,6 +95,26 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
     setItems((prev) => [...prev, item]);
   }
 
+  function simulateEvent(label: LiveItem["label"]) {
+    // Map label to example text and risk
+    const mapping = {
+      Safe: { text: "This looks fine, just confirming your appointment.", risk: 15 },
+      Suspicious: { text: "They are asking for an OTP code. Proceed carefully.", risk: 55 },
+      Scam: { text: "Provide your bank details now or face consequences.", risk: 90 },
+    } as const;
+
+    const m = mapping[(label as keyof typeof mapping) || "Safe"]; // fallback Safe
+    addLocalTranscript("Caller", m.text, label);
+    setRisk(m.risk);
+
+    if (label === "Suspicious" || label === "Scam") {
+      void speak(`Alert ${label}. ${label === 'Scam' ? 'Do not share personal or financial information.' : 'Be cautious and verify the caller.'}`);
+      sendLocalNotification(
+        label === "Scam" ? "Scam Alert" : "Suspicious Activity",
+        label === "Scam" ? "Potential scam detected. Stay safe." : "Something seems off. Verify identity."
+      );
+    }
+  }
   const start = async () => {
     // Resolve user
     const { data: u } = await supabase.auth.getUser();
@@ -225,7 +245,7 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
   };
 
   return useMemo(
-    () => ({ connected, isSpeaking, risk, language, items, start, stop, speak, addLocalTranscript }),
+    () => ({ connected, isSpeaking, risk, language, items, start, stop, speak, addLocalTranscript, simulateEvent }),
     [connected, isSpeaking, risk, language, items]
   );
 };

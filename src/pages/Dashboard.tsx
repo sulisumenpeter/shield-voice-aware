@@ -22,7 +22,7 @@ const Gauge = ({ value }: { value: number }) => {
 };
 
 const Dashboard = () => {
-  const { connected, isSpeaking, risk, language, items, start, stop, speak, addLocalTranscript } = useRealtimeSession("en");
+  const { connected, isSpeaking, risk, language, items, start, stop, speak, addLocalTranscript, simulateEvent } = useRealtimeSession("en");
 
   useEffect(() => {
     start();
@@ -30,6 +30,8 @@ const Dashboard = () => {
   }, []);
 
   const statusColor = risk >= 70 ? "destructive" : risk >= 35 ? "secondary" : "default";
+  const riskLabel = risk >= 70 ? "Not safe" : risk >= 35 ? "Suspicious" : "Safe";
+  const riskVariant = risk >= 70 ? "destructive" : risk >= 35 ? "secondary" : "outline";
 
   return (
     <main className="min-h-screen bg-background surface-glow">
@@ -68,8 +70,9 @@ const Dashboard = () => {
         <Card className="p-6 sticky top-6 h-fit">
           <h1 className="text-2xl font-bold">Live Risk</h1>
           <p className="text-sm text-muted-foreground mt-1">Realtime scoring from transcript.</p>
-          <div className="mt-6 flex items-center justify-center">
+          <div className="mt-6 flex flex-col items-center justify-center gap-2">
             <Gauge value={risk} />
+            <Badge variant={riskVariant as any}>{riskLabel}</Badge>
           </div>
           <Separator className="my-6" />
           <div className="space-y-2 text-sm">
@@ -86,17 +89,10 @@ const Dashboard = () => {
             <span>How to test:</span>
             <span>1) Click Start</span>
             <span>2) Speak on a call</span>
-            <span>3) Or simulate a line locally:</span>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                addLocalTranscript("Caller", "This is a local sample transcript line.", "Safe", "Demo preview");
-                toast({ title: "Local sample added" });
-              }}
-            >
-              Simulate Locally
-            </Button>
+            <span>3) Or simulate risk:</span>
+            <Button size="sm" variant="outline" onClick={() => simulateEvent("Safe")}>Safe</Button>
+            <Button size="sm" variant="secondary" onClick={() => simulateEvent("Suspicious")}>Suspicious</Button>
+            <Button size="sm" variant="destructive" onClick={() => simulateEvent("Scam")}>Not safe</Button>
           </div>
           <div className="mt-4 space-y-3 max-h-[70vh] overflow-auto pr-2">
             {items.length === 0 && (
