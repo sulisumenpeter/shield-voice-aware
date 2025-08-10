@@ -101,8 +101,11 @@ export type Database = {
           created_at: string
           id: string
           label: string | null
+          language: string | null
           rationale: string | null
           speaker: string
+          spoof_label: string | null
+          spoof_score: number | null
           updated_at: string
           user_id: string
         }
@@ -112,8 +115,11 @@ export type Database = {
           created_at?: string
           id?: string
           label?: string | null
+          language?: string | null
           rationale?: string | null
           speaker: string
+          spoof_label?: string | null
+          spoof_score?: number | null
           updated_at?: string
           user_id: string
         }
@@ -123,8 +129,11 @@ export type Database = {
           created_at?: string
           id?: string
           label?: string | null
+          language?: string | null
           rationale?: string | null
           speaker?: string
+          spoof_label?: string | null
+          spoof_score?: number | null
           updated_at?: string
           user_id?: string
         }

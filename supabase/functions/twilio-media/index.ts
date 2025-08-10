@@ -283,13 +283,33 @@ serve(async (req) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const OPENAI = Deno.env.get("OPENAI_API_KEY")!;
-  const HF_TOKEN = Deno.env.get("HUGGINGFACE_API_TOKEN") || "";
+
+  // Accept both secret names so production doesn't silently disable anti-spoofing
+  const HF_TOKEN =
+    Deno.env.get("HUGGINGFACE_API_TOKEN") ||
+    Deno.env.get("HUGGING_FACE_ACCESS_TOKEN") ||
+    "";
+
   const ANTISPOOF_ENABLED = (Deno.env.get("ANTISPOOF_ENABLED") ?? "true").toLowerCase() !== "false";
   const ANTISPOOF_MODEL = Deno.env.get("ANTISPOOF_MODEL") || "speechbrain/antispoofing-AASIST";
   const ANTISPOOF_THRESHOLD = parseFloat(Deno.env.get("ANTISPOOF_THRESHOLD") ?? "0.5");
   const ANTISPOOF_TIMEOUT_MS = parseInt(Deno.env.get("ANTISPOOF_TIMEOUT_MS") ?? "1500");
   const ANTISPOOF_WEIGHT = Math.max(0, Math.min(1, parseFloat(Deno.env.get("ANTISPOOF_WEIGHT") ?? "0.35")));
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+
+  // Helpful runtime log (no secrets) to confirm anti-spoofing path is active
+  console.log("Anti-spoof config", {
+    enabled: ANTISPOOF_ENABLED && !!HF_TOKEN,
+    model: ANTISPOOF_MODEL,
+    weight: ANTISPOOF_WEIGHT,
+    timeout_ms: ANTISPOOF_TIMEOUT_MS,
+  });
+
+  // Parse URL params after upgrade (they were already verified above)
+  const url = new URL(req.url);
+  const userId = url.searchParams.get("user_id");
+  const callId = url.searchParams.get("call_id");
+  const language = url.searchParams.get("lang") || "en";
 
   let pcmBuffer8k: Int16Array[] = [];
   const CHUNK_TARGET_MS = 1500; // ~1.5s latency target
@@ -326,7 +346,6 @@ serve(async (req) => {
       // Transcribe
       const text = await transcribeChunkWav(wav, OPENAI);
       if (!text) {
-        // Still update latest spoof if available
         const spoofRes = await spoofPromise;
         if (spoofRes) { lastSpoofScore = spoofRes.score; lastSpoofLabel = spoofRes.label; }
         return;
@@ -359,7 +378,11 @@ serve(async (req) => {
           content: text,
           label,
           rationale,
+          language, // NEW: persist language
+          spoof_score: lastSpoofScore, // NEW: persist anti-spoof score (0..1)
+          spoof_label: lastSpoofScore == null ? null : lastSpoofLabel, // NEW: persist label when available
         });
+
         await supabase.from("calls").upsert({
           id: callId,
           user_id: userId,
@@ -367,6 +390,7 @@ serve(async (req) => {
           direction: "inbound",
           channel: "twilio",
         }, { onConflict: "id" });
+
         if (label.toLowerCase() !== "safe") {
           await supabase.from("alerts").insert({
             user_id: userId,
