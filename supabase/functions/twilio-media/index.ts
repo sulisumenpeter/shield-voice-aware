@@ -158,9 +158,61 @@ async function transcribeChunkWav(wavBytes: Uint8Array, openAIKey: string): Prom
   }
 }
 
-// Anti-spoofing placeholder (skipped for MVP)
-async function detectSpoof(_wavBytes: Uint8Array): Promise<{ result: string; score?: number }> {
-  return { result: "skipped" };
+// Anti-spoofing via Hugging Face Inference API (AASIST)
+async function detectSpoof(
+  wavBytes: Uint8Array,
+  hfToken: string,
+  model = "speechbrain/antispoofing-AASIST",
+  timeoutMs = 1500,
+): Promise<{ label: "synthetic" | "genuine"; score: number } | null> {
+  try {
+    if (!hfToken) return null;
+    const url = `https://api-inference.huggingface.co/models/${model}`;
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${hfToken}`,
+        "Content-Type": "audio/wav",
+        Accept: "application/json",
+      },
+      body: wavBytes,
+      signal: controller.signal,
+    }).catch((e) => {
+      console.error("HF request error:", e);
+      return null as any;
+    });
+    clearTimeout(id);
+    if (!resp || !resp.ok) {
+      if (resp) {
+        const t = await resp.text();
+        console.warn("HF non-OK:", resp.status, t);
+      }
+      return null;
+    }
+    const data = await resp.json();
+    // Expecting array like: [{label:"bonafide", score:0.98}, {label:"spoof", score:0.02}]
+    if (!Array.isArray(data)) return null;
+    let spoofProb = 0;
+    for (const item of data) {
+      const lbl = String(item.label || "").toLowerCase();
+      if (lbl.includes("spoof")) {
+        spoofProb = Number(item.score) || 0;
+        break;
+      }
+      if (lbl.includes("bona") || lbl.includes("genuine")) {
+        // fallback if only bonafide given
+        const bona = Number(item.score) || 0;
+        spoofProb = Math.max(spoofProb, 1 - bona);
+      }
+    }
+    const label = spoofProb >= 0.5 ? "synthetic" : "genuine";
+    return { label, score: spoofProb };
+  } catch (e) {
+    console.error("detectSpoof exception:", e);
+    return null;
+  }
 }
 
 // HMAC token verification (hex digest)
@@ -231,6 +283,12 @@ serve(async (req) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const OPENAI = Deno.env.get("OPENAI_API_KEY")!;
+  const HF_TOKEN = Deno.env.get("HUGGINGFACE_API_TOKEN") || "";
+  const ANTISPOOF_ENABLED = (Deno.env.get("ANTISPOOF_ENABLED") ?? "true").toLowerCase() !== "false";
+  const ANTISPOOF_MODEL = Deno.env.get("ANTISPOOF_MODEL") || "speechbrain/antispoofing-AASIST";
+  const ANTISPOOF_THRESHOLD = parseFloat(Deno.env.get("ANTISPOOF_THRESHOLD") ?? "0.5");
+  const ANTISPOOF_TIMEOUT_MS = parseInt(Deno.env.get("ANTISPOOF_TIMEOUT_MS") ?? "1500");
+  const ANTISPOOF_WEIGHT = Math.max(0, Math.min(1, parseFloat(Deno.env.get("ANTISPOOF_WEIGHT") ?? "0.35")));
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
   let pcmBuffer8k: Int16Array[] = [];
@@ -241,6 +299,10 @@ serve(async (req) => {
 
   let cumulativeRisk = 0;
   let segments = 0;
+
+  // Anti-spoofing state (latest result)
+  let lastSpoofScore: number | null = null; // 0..1 probability of spoof
+  let lastSpoofLabel: "synthetic" | "genuine" | "unknown" = "unknown";
 
   async function flushChunk() {
     try {
@@ -256,16 +318,37 @@ serve(async (req) => {
       const pcm16k = upsampleTo16k(merged8k);
       const wav = pcm16ToWav(pcm16k, 16000);
 
+      // Kick off anti-spoof in parallel (non-blocking) for minimal latency
+      const spoofPromise = (ANTISPOOF_ENABLED && HF_TOKEN)
+        ? detectSpoof(wav, HF_TOKEN, ANTISPOOF_MODEL, ANTISPOOF_TIMEOUT_MS)
+        : Promise.resolve(null);
+
       // Transcribe
       const text = await transcribeChunkWav(wav, OPENAI);
-      if (!text) return;
+      if (!text) {
+        // Still update latest spoof if available
+        const spoofRes = await spoofPromise;
+        if (spoofRes) { lastSpoofScore = spoofRes.score; lastSpoofLabel = spoofRes.label; }
+        return;
+      }
 
       // Classify
       const { label, rationale, risk } = await classifyText(text, OPENAI);
 
+      // Await anti-spoof result (should already be ready or within timeout)
+      const spoofRes = await spoofPromise;
+      if (spoofRes) {
+        lastSpoofScore = spoofRes.score;
+        lastSpoofLabel = spoofRes.label;
+      }
+
+      // Fuse risk with anti-spoof (if available)
+      const spoofProb = lastSpoofScore ?? 0;
+      const fusedRisk = Math.round(risk * (1 - ANTISPOOF_WEIGHT) + (spoofProb * 100) * ANTISPOOF_WEIGHT);
+
       // Accumulate risk (simple moving average)
       segments += 1;
-      cumulativeRisk = Math.round(((cumulativeRisk * (segments - 1)) + risk) / segments);
+      cumulativeRisk = Math.round(((cumulativeRisk * (segments - 1)) + fusedRisk) / segments);
 
       // Persist if we have user_id
       if (userId) {
@@ -303,8 +386,9 @@ serve(async (req) => {
         text,
         label,
         rationale,
-        risk,
+        risk: fusedRisk,
         cumulative_risk: cumulativeRisk,
+        spoof: lastSpoofScore == null ? null : { score: lastSpoofScore, label: lastSpoofLabel, threshold: ANTISPOOF_THRESHOLD },
         ts: Date.now(),
       }));
     } catch (err) {
