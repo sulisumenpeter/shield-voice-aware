@@ -22,7 +22,7 @@ const Gauge = ({ value }: { value: number }) => {
 };
 
 const Dashboard = () => {
-  const { connected, isSpeaking, risk, language, items, start, stop, speak, addLocalTranscript, simulateEvent } = useRealtimeSession("en");
+  const { connected, isSpeaking, risk, language, items, start, stop, speak, addLocalTranscript, simulateEvent, testAudioSnippet } = useRealtimeSession("en");
 
   useEffect(() => {
     start();
@@ -93,6 +93,12 @@ const Dashboard = () => {
             <Button size="sm" variant="outline" onClick={() => simulateEvent("Safe")}>Safe</Button>
             <Button size="sm" variant="secondary" onClick={() => simulateEvent("Suspicious")}>Suspicious</Button>
             <Button size="sm" variant="destructive" onClick={() => simulateEvent("Scam")}>Not safe</Button>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span>Audio snippets (TTS):</span>
+            <Button size="sm" variant="outline" onClick={() => testAudioSnippet("en")}>Test EN</Button>
+            <Button size="sm" variant="secondary" onClick={() => testAudioSnippet("es")}>Test ES</Button>
+            <Button size="sm" variant="destructive" onClick={() => testAudioSnippet("fr")}>Test FR</Button>
           </div>
           <div className="mt-4 space-y-3 max-h-[70vh] overflow-auto pr-2">
             {items.length === 0 && (

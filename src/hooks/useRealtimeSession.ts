@@ -61,10 +61,10 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
     if (!isPlayingRef.current) playNext();
   }
 
-  async function speak(text: string, voiceId = "9BWtsMINqrJLrRacOk9x") {
+  async function speak(text: string, voiceId = "9BWtsMINqrJLrRacOk9x", modelId?: string) {
     try {
       const { data, error } = await supabase.functions.invoke("voice-alert", {
-        body: { text, voiceId },
+        body: { text, voiceId, modelId },
       });
       if (error) {
         console.error("voice-alert invoke error:", error);
@@ -80,7 +80,8 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
     speaker: string,
     text: string,
     label: LiveItem["label"] = "Safe",
-    rationale?: string
+    rationale?: string,
+    lang?: string
   ) {
     const item: LiveItem = {
       id: `local-${Date.now()}`,
@@ -89,10 +90,29 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
       text,
       label,
       rationale,
-      language: defaultLanguage,
+      language: lang || defaultLanguage,
     };
     lastItemAtRef.current = item.t;
     setItems((prev) => [...prev, item]);
+  }
+
+  async function testAudioSnippet(lang: "en" | "es" | "fr") {
+    const samples = {
+      en: { text: "This is a safe confirmation about your appointment tomorrow.", label: "Safe" as const, risk: 15 },
+      es: { text: "Por favor, comparta el código de verificación de seis dígitos que recibió por SMS.", label: "Suspicious" as const, risk: 55 },
+      fr: { text: "Veuillez fournir les informations de votre carte bancaire pour vérifier votre identité.", label: "Scam" as const, risk: 90 },
+    };
+    const s = samples[lang];
+    addLocalTranscript("Caller", s.text, s.label, undefined, lang);
+    setRisk(s.risk);
+    // Speak the phrase using multilingual model for better pronunciation
+    await speak(s.text, undefined, "eleven_multilingual_v2");
+    if (s.label !== "Safe") {
+      sendLocalNotification(
+        s.label === "Scam" ? "Scam Alert" : "Suspicious Activity",
+        s.label === "Scam" ? "Potential scam detected. Stay safe." : "Something seems off. Verify identity."
+      );
+    }
   }
 
   function simulateEvent(label: LiveItem["label"]) {
@@ -245,7 +265,7 @@ export const useRealtimeSession = (defaultLanguage: string = "en") => {
   };
 
   return useMemo(
-    () => ({ connected, isSpeaking, risk, language, items, start, stop, speak, addLocalTranscript, simulateEvent }),
+    () => ({ connected, isSpeaking, risk, language, items, start, stop, speak, addLocalTranscript, simulateEvent, testAudioSnippet }),
     [connected, isSpeaking, risk, language, items]
   );
 };
